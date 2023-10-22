@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      serviceAccountName: sample-app-service-account
+      containers:
+        - name: sample-app-container
+          image: jcsh7/my-vault-image:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault:8200"
+            - name: VAULT_ROLE
+              value: "bits-taxila-read"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Fetching secrets from Vault..."
+              VAULT_TOKEN=$(vault write -field=token auth/approle/login role_id=7294b12c-9d99-d1f9-6cca-34348a2cc551 secret_id=c92b1d57-3dc1-69e6-dc82-97d8aac35524)
+              # echo "Vault Token: ${VAULT_TOKEN}"
+              export VAULT_TOKEN="${VAULT_TOKEN}"
+              SECRET=$(vault kv get -field=username bits/dissertation/taxila/login)
+              echo "Username: ${SECRET}"
+              SECRET=$(vault kv get -field=password bits/dissertation/taxila/login)
+              echo "Password: ${SECRET}"
+              tail -f /dev/null
